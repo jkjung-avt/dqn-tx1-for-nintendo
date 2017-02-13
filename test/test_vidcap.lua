@@ -41,7 +41,7 @@ while true do
         cnt = cnt + 1
         if cnt >= opt.interval then
             cnt = 0
-            image.save(string.format('image/image%04d.png',idx), img)
+            image.savePNG(string.format('image/image%04d.png',idx), img)
             idx = (idx+1) % 10000
         end
     end
