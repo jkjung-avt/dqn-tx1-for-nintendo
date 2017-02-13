@@ -43,12 +43,13 @@ static void bye(void)
 
 static void UYVY1280x720_to_GRAY640x360(const unsigned char *src, unsigned char *dst)
 {
-        int j, width = 640, height = 360;
+        int i, j, width = 640, height = 360;
 
-        src += 1280*2 + 1;  /* start from 2nd line of src, and offset by 1 to get the 1st Y value (the byte preceding this Y is a U) */
+        src += 1;  /* offset by 1 to get the 1st Y value (the byte preceding this Y is a U) */
         while (--height >= 0) {
-                for (j = 0; j < width; j++) {
-                        *dst++ = src[j * 4];  /* [(j * 1280 / 640) * 2] */
+                for (i = 0; i < width; i++) {
+                        j = i * 4;  /* j = (i * 1280 / 640) * 2; */
+                        *dst++ = (src[j] + src[j+2] + src[j+1280*2] + src[j+1280*2+2]) / 4;  /* take average of Y over 4 adjacent pixels */
                 }
                 src += 1280*2 * 2;  /* stride 2 lines, 1280*2 bytes per line */
         }
