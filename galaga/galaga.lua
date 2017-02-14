@@ -27,11 +27,12 @@ local galaga_image = torch.load('galaga/galaga_image.t7')
 
 -- Check whether there is some image (>20% pixels with value greater than
 -- or equal to 16) in the rectangle. Returns true or false.
-local function is_icon_present(rect)
+local function is_icon_present(rect, percentage)
     -- threshold at 16, and only compare the 1st channel of rect
     local y = rect[1]
     local active_ratio = y[y:ge(16)]:numel() / y:numel()
-    return (active_ratio > 0.20)
+    percentage = percentage or 0.2
+    return (active_ratio > percentage)
 end
 
 -- Translate a rectangle image to a single-digit number, by comparing the
@@ -62,13 +63,46 @@ function galaga.get_score(img)
     return score
 end
 
+-- Read number of lives (remaining fighters) of the game.
+function galaga.get_lives(img)
+    local lives = 0
+    local rect
+    for i = 1, 3 do
+        local loc = galaga_image.fighter_loc
+        -- slice out the rectangle and convert it to torch.DoubleTensor
+        rect = img[{ {}, {loc[i].h1, loc[i].h2}, {loc[i].w1, loc[i].w2} }]:double()
+        if not is_icon_present(rect, 0.5) then break end
+        lives = lives + 1
+    end
+    return lives
+end
+
 -- Check whether "HIGH SCORE" is present at the top-right corner of the
--- game image
-function galaga.has_high(img)
+-- game image.
+function galaga.has_HIGH(img)
     local loc = galaga_image.high_loc
     local rect = img[{ {}, {loc.h1, loc.h2}, {loc.w1, loc.w2} }]:double()
     -- assert(rect:isSameSizeAs(galaga_image.high))
     local abs_diff = rect:csub(galaga_image.high):abs()
+    local diff_ratio = abs_diff[abs_diff:ge(32)]:numel() / abs_diff:numel()
+    return (diff_ratio < 0.2)
+end
+
+-- Check whether there is any flag present at the lower-right corner of
+-- the game image. This is used to determine whether the game is active.
+function galaga.has_Flag(img)
+    local loc = galaga_image.flag_loc
+    local rect = img[{ {}, {loc.h1, loc.h2}, {loc.w1, loc.w2} }]:double()
+    return is_icon_present(rect, 0.5)
+end
+
+-- Check whether "- RESULT -" is present at the center part of the
+-- game image. This is used to determine "GAME OVER" condition.
+function galaga.has_RESULT(img)
+    local loc = galaga_image.result_loc
+    local rect = img[{ {}, {loc.h1, loc.h2}, {loc.w1, loc.w2} }]:double()
+    -- assert(rect:isSameSizeAs(galaga_image.high))
+    local abs_diff = rect:csub(galaga_image.result):abs()
     local diff_ratio = abs_diff[abs_diff:ge(32)]:numel() / abs_diff:numel()
     return (diff_ratio < 0.2)
 end
