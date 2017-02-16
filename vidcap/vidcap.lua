@@ -13,8 +13,8 @@
 require 'torch'
 
 local ffi = require 'ffi'
-local vidcap = ffi.load(paths.cwd() .. '/vidcap/libvidcap.so')
---local vidcap = ffi.load('libvidcap.so')
+local vidcap = {}
+local lib = ffi.load(paths.cwd() .. '/vidcap/libvidcap.so')
 
 -- Function prototype definition
 ffi.cdef [[
@@ -23,5 +23,21 @@ ffi.cdef [[
     void vidcap_flush();
     void vidcap_cleanup();
 ]]
+
+function vidcap.init()
+    return lib.vidcap_init()
+end
+
+function vidcap.get(img)
+    lib.vidcap_get(torch.data(img))
+end
+
+function vidcap.flush()
+    lib.vidcap_flush()
+end
+
+function vidcap.cleanup()
+    lib.vidcap_cleanup()
+end
 
 return vidcap

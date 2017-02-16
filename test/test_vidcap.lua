@@ -29,14 +29,15 @@ img = img:permute(3,1,2);
 cnt = 0          -- frame count
 idx = opt.index  -- saved image index
 
-ret = vidcap.vidcap_init()
-assert(ret == 0, 'vidcap_init() failed!')
+ret = vidcap.init()
+assert(ret == 0, 'vidcap.init() failed!')
 
 os.execute('mkdir -p image')
-vidcap.vidcap_flush()
+vidcap.flush()
 while true do
-    vidcap.vidcap_get(torch.data(img))
-    win = image.display({image=img, win=win})
+    --vidcap.vidcap_get(torch.data(img))
+    vidcap.get(img)
+    win = image.display({image = img, win = win})
     if (opt.save) then
         cnt = cnt + 1
         if cnt >= opt.interval then
@@ -47,5 +48,4 @@ while true do
     end
 end
 
-vidcap.vidcap_cleanup()
-
+vidcap.cleanup()

@@ -26,15 +26,15 @@ galaga = require 'galaga/galaga'
 img = torch.ByteTensor(360, 640, 1)
 img = img:permute(3, 1, 2);
 
-ret = vidcap.vidcap_init()
-assert(ret == 0, 'vidcap_init() failed!')
+ret = vidcap.init()
+assert(ret == 0, 'vidcap.init() failed!')
 
 frame = 0
 
-vidcap.vidcap_flush()
+vidcap.flush()
 while true do
-    vidcap.vidcap_get(torch.data(img))
-    win = image.display({image=img, win=win})
+    vidcap.get(img)
+    win = image.display({image = img, win = win})
     frame = frame + 1
 
     str = '\rFrame ' .. tostring(frame) .. ' - '
@@ -52,5 +52,4 @@ while true do
 end
 
 print()  -- print a newline
-vidcap.vidcap_cleanup()
-
+vidcap.cleanup()
