@@ -1,6 +1,6 @@
 # Makefile for dqn-tx1-for-nintendo
 
-SUBDIRS = vidcap
+SUBDIRS = vidcap gpio
 
 .PHONY: all clean subdirs $(SUBDIRS)
 
