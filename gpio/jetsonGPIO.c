@@ -46,6 +46,21 @@
 #include <fcntl.h>
 #include "jetsonGPIO.h"
 
+#define error_open(msg)  \
+        do {  \
+                char errorBuffer[128];  \
+                snprintf(errorBuffer, sizeof(errorBuffer), msg, gpio);  \
+                perror(errorBuffer);  \
+                return fileDescriptor;  \
+        } while (0)
+
+#define error_other(msg)  \
+        do {  \
+                perror(msg);  \
+                close(fileDescriptor);  \
+                return -1;  \
+        } while (0)
+
 /*
  * gpioExport
  * Export the given gpio to userspace;
@@ -56,20 +71,21 @@ int gpioExport(jetsonGPIO gpio)
         int fileDescriptor, length;
         char commandBuffer[MAX_BUF];
 
-        fileDescriptor = open(SYSFS_GPIO_DIR "/export", O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128] ;
-                snprintf(errorBuffer, sizeof(errorBuffer), "gpioExport unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
+        snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR  "/gpio%d/direction", gpio);
+        fileDescriptor = open(commandBuffer, O_WRONLY);
+        if (fileDescriptor >= 0) {
+                /* the "direction" file for this gpio already exists, so don't need to do export again */
+                close(fileDescriptor);
+                return 0;
         }
 
+        fileDescriptor = open(SYSFS_GPIO_DIR "/export", O_WRONLY);
+        if (fileDescriptor < 0)
+                error_open("gpioExport unable to open gpio%d");
+
         length = snprintf(commandBuffer, sizeof(commandBuffer), "%d", gpio);
-        if (write(fileDescriptor, commandBuffer, length) != length) {
-                perror("gpioExport");
-                close(fileDescriptor);
-                return -1;
-        }
+        if (write(fileDescriptor, commandBuffer, length) != length)
+                error_other("gpioExport");
 
         close(fileDescriptor);
         return 0;
@@ -86,19 +102,12 @@ int gpioUnexport(jetsonGPIO gpio)
         char commandBuffer[MAX_BUF];
 
         fileDescriptor = open(SYSFS_GPIO_DIR "/unexport", O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128];
-                snprintf(errorBuffer,sizeof(errorBuffer), "gpioUnexport unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioUnexport unable to open gpio%d");
 
         length = snprintf(commandBuffer, sizeof(commandBuffer), "%d", gpio);
-        if (write(fileDescriptor, commandBuffer, length) != length) {
-                perror("gpioUnexport");
-                close(fileDescriptor);
-                return -1;
-        }
+        if (write(fileDescriptor, commandBuffer, length) != length)
+                error_other("gpioUnexport");
 
         close(fileDescriptor);
         return 0;
@@ -115,28 +124,17 @@ int gpioSetDirection(jetsonGPIO gpio, unsigned int out_flag)
         char commandBuffer[MAX_BUF];
 
         snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR  "/gpio%d/direction", gpio);
-
         fileDescriptor = open(commandBuffer, O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128] ;
-                snprintf(errorBuffer, sizeof(errorBuffer), "gpioSetDirection unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioSetDirection unable to open gpio%d");
 
         if (out_flag) {
-                if (write(fileDescriptor, "out", 4) != 4) {
-                        perror("gpioSetDirection");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "out", 4) != 4)
+                        error_other("gpioSetDirection");
         }
         else {
-                if (write(fileDescriptor, "in", 3) != 3) {
-                        perror("gpioSetDirection");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "in", 3) != 3)
+                        error_other("gpioSetDirection");
         }
 
         close(fileDescriptor);
@@ -154,28 +152,17 @@ int gpioSetValue(jetsonGPIO gpio, unsigned int value)
         char commandBuffer[MAX_BUF];
 
         snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR "/gpio%d/value", gpio);
-
         fileDescriptor = open(commandBuffer, O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128];
-                snprintf(errorBuffer, sizeof(errorBuffer), "gpioSetValue unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioSetValue unable to open gpio%d");
 
         if (value) {
-                if (write(fileDescriptor, "1", 2) != 2) {
-                        perror("gpioSetValue");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "1", 2) != 2)
+                        error_other("gpioSetValue");
         }
         else {
-                if (write(fileDescriptor, "0", 2) != 2) {
-                        perror("gpioSetValue");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "0", 2) != 2)
+                        error_other("gpioSetValue");
         }
 
         close(fileDescriptor);
@@ -194,26 +181,14 @@ int gpioGetValue(jetsonGPIO gpio, unsigned int *value)
         char ch;
 
         snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR "/gpio%d/value", gpio);
-
         fileDescriptor = open(commandBuffer, O_RDONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128];
-                snprintf(errorBuffer, sizeof(errorBuffer), "gpioGetValue unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioGetValue unable to open gpio%d");
 
-        if (read(fileDescriptor, &ch, 1) != 1) {
-                perror("gpioGetValue");
-                close(fileDescriptor);
-                return -1;
-        }
+        if (read(fileDescriptor, &ch, 1) != 1)
+                error_other("gpioGetValue");
 
-        if (ch != '0') {
-                *value = 1;
-        } else {
-                *value = 0;
-        }
+        *value = (ch != '0') ? 1 : 0;
 
         close(fileDescriptor);
         return 0;
@@ -231,53 +206,15 @@ int gpioSetEdge(jetsonGPIO gpio, char *edge)
         char commandBuffer[MAX_BUF];
 
         snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR "/gpio%d/edge", gpio);
-
         fileDescriptor = open(commandBuffer, O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128] ;
-                snprintf(errorBuffer,sizeof(errorBuffer), "gpioSetEdge unable to open gpio%d",gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioSetEdge unable to open gpio%d");
 
-        if (write(fileDescriptor, edge, strlen(edge) + 1) != ((int) (strlen(edge) + 1))) {
-                perror("gpioSetEdge");
-                close(fileDescriptor);
-                return -1;
-        }
+        if (write(fileDescriptor, edge, strlen(edge) + 1) != ((int) (strlen(edge) + 1)))
+                error_other("gpioSetEdge");
 
         close(fileDescriptor);
         return 0;
-}
-
-/*
- * gpioOpen
- * Open the given pin for reading
- * Returns the file descriptor of the named pin
- */
-int gpioOpen(jetsonGPIO gpio)
-{
-        int fileDescriptor;
-        char commandBuffer[MAX_BUF];
-
-        snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR "/gpio%d/value", gpio);
-
-        fileDescriptor = open(commandBuffer, O_RDONLY | O_NONBLOCK);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128] ;
-                snprintf(errorBuffer,sizeof(errorBuffer), "gpioOpen unable to open gpio%d",gpio);
-                perror(errorBuffer);
-        }
-        return fileDescriptor;
-}
-
-/*
- * gpioClose
- * Close the given file descriptor
- */
-int gpioClose(int fileDescriptor)
-{
-        return close(fileDescriptor);
 }
 
 /*
@@ -291,31 +228,19 @@ int gpioActiveLow(jetsonGPIO gpio, unsigned int value)
         char commandBuffer[MAX_BUF];
 
         snprintf(commandBuffer, sizeof(commandBuffer), SYSFS_GPIO_DIR "/gpio%d/active_low", gpio);
-
         fileDescriptor = open(commandBuffer, O_WRONLY);
-        if (fileDescriptor < 0) {
-                char errorBuffer[128];
-                snprintf(errorBuffer, sizeof(errorBuffer), "gpioActiveLow unable to open gpio%d", gpio);
-                perror(errorBuffer);
-                return fileDescriptor;
-        }
+        if (fileDescriptor < 0)
+                error_open("gpioActiveLow unable to open gpio%d");
 
         if (value) {
-                if (write(fileDescriptor, "1", 2) != 2) {
-                        perror("gpioActiveLow");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "1", 2) != 2)
+                        error_other("gpioActiveLow");
         }
         else {
-                if (write(fileDescriptor, "0", 2) != 2) {
-                        perror("gpioActiveLow");
-                        close(fileDescriptor);
-                        return -1;
-                }
+                if (write(fileDescriptor, "0", 2) != 2)
+                        error_other("gpioActiveLow");
         }
 
         close(fileDescriptor);
         return 0;
 }
-

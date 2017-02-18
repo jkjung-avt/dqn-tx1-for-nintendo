@@ -77,8 +77,6 @@ int gpioSetDirection(jetsonGPIO, pinDirection out_flag);
 int gpioSetValue(jetsonGPIO gpio, pinValue value);
 int gpioGetValue(jetsonGPIO gpio, unsigned int *value);
 int gpioSetEdge(jetsonGPIO gpio, char *edge);
-int gpioOpen(jetsonGPIO gpio) ;
-int gpioClose(int fileDescriptor);
 int gpioActiveLow(jetsonGPIO gpio, unsigned int value);
 
 #endif /* JETSONGPIO_H_ */
