@@ -23,8 +23,7 @@ opt = cmd:parse(arg or {})
 vidcap = require 'vidcap/vidcap'
 galaga = require 'galaga/galaga'
 
-img = torch.ByteTensor(360, 640, 1)
-img = img:permute(3, 1, 2);
+img = vidcap.create_image()  -- create the image buffer
 
 ret = vidcap.init()
 assert(ret == 0, 'vidcap.init() failed!')

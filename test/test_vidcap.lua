@@ -24,10 +24,9 @@ opt = cmd:parse(arg or {})
 
 vidcap = require 'vidcap/vidcap'
 
-img = torch.ByteTensor(360,640,1)
-img = img:permute(3,1,2);
-cnt = 0          -- frame count
-idx = opt.index  -- saved image index
+img = vidcap.create_image()  -- the image buffer
+cnt = 0                      -- frame count
+idx = opt.index              -- saved image index
 
 ret = vidcap.init()
 assert(ret == 0, 'vidcap.init() failed!')
@@ -42,8 +41,8 @@ while true do
         cnt = cnt + 1
         if cnt >= opt.interval then
             cnt = 0
-            image.savePNG(string.format('image/image%04d.png',idx), img)
-            idx = (idx+1) % 10000
+            image.savePNG(string.format('image/image%04d.png', idx), img)
+            idx = (idx + 1) % 10000
         end
     end
 end
