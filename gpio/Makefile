@@ -1,6 +1,6 @@
-# Makefile for libvidcap.so
+# Makefile for libgpio.so
 #
-# It is used to build the video capture library, which could be called from
+# It is used to build the gpio library, which could be called from
 # Lua FFI interface.
 
 CC       = gcc
