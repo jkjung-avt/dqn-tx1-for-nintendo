@@ -1,6 +1,13 @@
 /*
  * jetsonGPIO.h
  *
+ * This modeule handles GPIOs of Jetson TX1. The code is originally from
+ * https://github.com/jetsonhacks/jetsonTX1GPIO, then modified and
+ * maintained by JK Jung <jkjung13@gmail.com>. The original copyright
+ * notice is retained below.
+ */
+
+/*
  * Copyright (c) 2015 JetsonHacks
  * www.jetsonhacks.com
  *
