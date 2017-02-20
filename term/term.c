@@ -27,10 +27,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <sys/select.h>
 
 #if 0
 void term_init();
 void term_cleanup();
+void term_msleep(int msec);
 int  term_waitkey(int timeout);
 #endif  /* 0 */
 
@@ -72,11 +74,25 @@ void term_cleanup()
         bye();
 }
 
-int  term_waitkey(int timeout)  /* timeout in msecs */
+void term_msleep(int msec)
+{
+
+}
+
+int term_waitkey(int timeout)  /* timeout in msecs */
 {
         int c;
+        fd_set fds;
+        struct timeval t = { .tv_sec = 0, .tv_usec = timeout * 1000 };
 
-        /* TO-DO: implement timeout with select() */
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+        select(STDIN_FILENO+1, &fds, NULL, NULL, &t);
+
+        if (!FD_ISSET(STDIN_FILENO, &fds))  /* no input */
+                return 0;
+
+        /* otherwise consume the input here and return to caller */
         c = getchar();
         return c;
 }

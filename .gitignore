@@ -1,3 +1,4 @@
 vidcap/libvidcap.so
 gpio/libgpio.so
+term/libterm.so
 image/
