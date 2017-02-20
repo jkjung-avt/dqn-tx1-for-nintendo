@@ -12,8 +12,6 @@
 -- jkjung, 2017-02-16
 --------------------------------------------------------------------------------
 
-require 'torch'
-
 local ffi = require 'ffi'
 local gpio = {}
 local lib = ffi.load(paths.cwd() .. '/gpio/libgpio.so')
