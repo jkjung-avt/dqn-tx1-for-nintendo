@@ -17,7 +17,7 @@
 --      184            Up              'W' or 'w'
 --      219            Down            'S' or 's'
 --      38             A (Fire)        SPACE
---      63             Select          ENTER
+--      63             Start           ENTER
 --      
 -- The test script quits when the user hits ESC key.
 --
@@ -41,7 +41,7 @@ key_to_gpio = {
     [83]  = 219,  -- 'S'   = Down
     [115] = 219,  -- 's'   = Down
     [32]  = 38,   -- SPACE = A (Fire)
-    [10]  = 63,   -- ENTER = Select
+    [10]  = 63,   -- ENTER = Start
 }
 
 for i = 1, #pins do gpio.export(pins[i]) end
