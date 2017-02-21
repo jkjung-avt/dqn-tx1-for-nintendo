@@ -50,17 +50,17 @@ for i = 1, #pins do gpio.set_output(pins[i]) end
 for i = 1, #pins do gpio.set_low(pins[i]) end
 
 while true do
-    local c = term.waitkey(20)
+    local c = term.waitkey(30)
     if c then
         if c == string.byte('.') then break end
         local p = key_to_gpio[c]
         if p then
-            for i = 1, #pins do gpio.set_low(pins[i]) end
             gpio.set_high(p)
-            -- term.msleep(10)
-            -- gpio.set_low(p)
+            term.msleep(30)
             print('key ' .. c .. ' ->', 'gpio'..p)
         end
+    else
+        for i = 1, #pins do gpio.set_low(pins[i]) end
     end
 end
 
