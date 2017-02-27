@@ -15,8 +15,9 @@ require 'torch'
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text('options:')
-cmd:option('-games', 100, 'plays this many games and calculates average score')
-cmd:option('-actstep', 2, 'takes one action per this many game frames')
+cmd:option('-games', 100, 'play this many games and calculate average score')
+cmd:option('-actstep', 2, 'take one action per this many game frames')
+cmd:option('-plot', false, 'plot histogram at the end')
 cmd:text()
 opt = cmd:parse(arg or {})
 
@@ -44,3 +45,13 @@ for i = 1, opt.games do
 end
 
 gameenv.cleanup()
+
+hh = torch.Tensor(history)
+print()
+print('Average score = ' .. (hh:sum() / hh:numel()) ..
+      ', min = ' .. hh:min() ..
+      ', max = ' .. hh:max())
+if opt.plot then
+    require 'gnuplot'
+    gnuplot.hist(hh, hh:numel() / 5)
+end

@@ -57,6 +57,8 @@ end
 
 -- Clean up the game environment.
 function gameenv.cleanup()
+    local pins = { 36, 37, 184, 219, 38, 63 }
+    for i = 1, #pins do gpio.set_low(pins[i]) end
     vidcap.cleanup()
     gameenv.is_initialized = false
 end
@@ -107,7 +109,7 @@ end
 -- take_actions() is now hard-coded for Galaga...
 -- 1~6
 local function take_action(a)
-    -- set all gpio pins to low (release)
+    -- set all gpio pins to low (release all buttons)
     local pins = { 36, 37, 184, 219, 38, 63 }
     for i = 1, #pins do gpio.set_low(pins[i]) end
 
@@ -115,6 +117,8 @@ local function take_action(a)
     --      36             Left
     --      37             Right
     --      38             A (Fire)
+
+    -- set corresponding gpio pin(s) to high (press certain buttons)
     if a == 1 then gpio.set_high(36) end                    -- Left
     if a == 3 then gpio.set_high(37) end                    -- Right
     if a == 5 then gpio.set_high(38) end                    -- Fire
@@ -124,8 +128,8 @@ end
 
 -- Discard current game, and try to start a new game.
 -- new_game() is hard-coded for Galaga...
--- Note the program could block for a long time, or even froever (if the
--- Ninetendo game console is not under Galaga game...
+-- Note the program could block for a long time, or even forever (if the
+-- Nintendo game console is not under Galaga game...)
 function gameenv.new_game()
     local start_ok = false
     local img = gameenv.img
@@ -141,22 +145,23 @@ function gameenv.new_game()
         end
     end
 
-    -- try pressing Start button up to 8 times
+    -- try pressing Start button up to 10 times
     -- expect to see a game screen with 3 lives
-    for i = 1, 8 do
+    for i = 1, 10 do
         start_button(true)
-        preview_frames(15)
+        preview_frames(10)
         start_button(false)
-        preview_frames(15)
+        preview_frames(10)
         if galaga.has_HIGH(img) and galaga.get_lives(img) == 3 then
             start_ok = true
+            break
         end
     end
     assert(start_ok)  -- if timeout then something is wrong
 
-    -- wait for Flag to sppear
+    -- wait for Flag to appear, up to 10 seconds
     start_ok = false
-    for i = 1, 60 do
+    for i = 1, 30 do
         preview_frames(10)
         if galaga.has_Flag(img) then
             start_ok = true
@@ -165,9 +170,9 @@ function gameenv.new_game()
     end
     assert(start_ok)  -- if timeout then something is wrong
 
-    -- wait for lives to decrease from 3 to 2
+    -- wait for lives to decrease from 3 to 2, up to 10 seconds
     start_ok = false
-    for i = 1, 60 do
+    for i = 1, 30 do
         preview_frames(10)
         if galaga.get_lives(img) == 2 then
             start_ok = true
@@ -176,7 +181,7 @@ function gameenv.new_game()
     end
     assert(start_ok)  -- if timeout then something is wrong
 
-    -- the new game has really started
+    -- a new game has really started
     gameenv.is_terminated = false
 end
 
@@ -194,7 +199,9 @@ function gameenv.step(a)
     end
     local score = galaga.get_score(img)
     local reward = score - gameenv.last_score
-    --
+    -- the following is to work around the problem that sometimes
+    -- galaga.get_score() could incorrectly return 0 for 1~2 frames
+    -- around end of a game
     if score == 0 then
         reward = 0
     else
