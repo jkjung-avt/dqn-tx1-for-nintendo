@@ -40,6 +40,7 @@ for i = 1, opt.games do
             _, _, terminal = gameenv.step()
         end
     end
+    gameenv.step(0)  -- release all buttons
     print(('Game #%3d, score = '):format(i) .. gameenv.get_score())
     history[#history + 1] = gameenv.get_score()
 end
