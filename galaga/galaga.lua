@@ -25,6 +25,14 @@ require 'torch'
 local galaga = {}
 local galaga_image = torch.load('galaga/galaga_image.t7')
 
+-- This shifted variable is use to work around the problem of shifted pixels
+-- due to difference in the Nintendo Famicom Mino console units or the video
+-- capture device. More specifically, I have tried 2 different Nintendo
+-- console units with the same TX1 (EX711-AA) unit, and found pixels are
+-- offset by 1 between the 2 consoles!
+-- The actual work-around code is implemented in galaga.has_HIGH().
+galaga.shifted = false
+
 -- Check whether there is some image (>20% pixels with value greater than
 -- or equal to 16) in the rectangle. Returns true or false.
 local function is_icon_present(rect, percentage)
@@ -77,6 +85,24 @@ function galaga.get_lives(img)
     return lives
 end
 
+local function offset_all_loc(offset)
+    for i = 1, 6 do
+        galaga_image.score_loc[i].w1 = galaga_image.score_loc[i].w1 + offset
+        galaga_image.score_loc[i].w2 = galaga_image.score_loc[i].w2 + offset
+    end
+    for i = 1, 3 do
+        galaga_image.fighter_loc[i].w1 = galaga_image.fighter_loc[i].w1 + offset
+        galaga_image.fighter_loc[i].w2 = galaga_image.fighter_loc[i].w2 + offset
+    end
+    galaga_image.high_loc.w1 = galaga_image.high_loc.w1 + offset
+    galaga_image.high_loc.w2 = galaga_image.high_loc.w2 + offset
+    galaga_image.flag_loc.w1 = galaga_image.flag_loc.w1 + offset
+    galaga_image.flag_loc.w2 = galaga_image.flag_loc.w2 + offset
+    galaga_image.result_loc.w1 = galaga_image.result_loc.w1 + offset
+    galaga_image.result_loc.w2 = galaga_image.result_loc.w2 + offset
+    galaga.offset = offset
+end
+
 -- Check whether "HIGH SCORE" is present at the top-right corner of the
 -- game image.
 function galaga.has_HIGH(img)
@@ -85,7 +111,28 @@ function galaga.has_HIGH(img)
     -- assert(rect:isSameSizeAs(galaga_image.high))
     local abs_diff = rect:csub(galaga_image.high):abs()
     local diff_ratio = abs_diff[abs_diff:ge(32)]:numel() / abs_diff:numel()
-    return (diff_ratio < 0.2)
+    if galaga.shifted then return (diff_ratio < 0.2) end
+
+    if diff_ratio < 0.2 then
+        -- found a matching "HIGH SCORE" for the first time, no need to
+        -- check pixel shift problem from here on.
+        galaga.shifted = true
+        return true
+    end
+
+    -- we haven't confirmed pixel shift problem yet, so check it here.
+    -- we try to shift the 'rect' 1-pixel to the right.
+    rect = img[{ {}, {loc.h1, loc.h2}, {loc.w1+1, loc.w2+1} }]:double()
+    abs_diff = rect:csub(galaga_image.high):abs()
+    diff_ratio = abs_diff[abs_diff:ge(32)]:numel() / abs_diff:numel()
+    if diff_ratio < 0.2 then
+        -- found "HIGH SCORE" at the shifted location, so we need to
+        -- adjust coordinates of all icons in galaga_image.
+        offset_all_loc(1)
+        galaga.shifted = true
+        return true
+    end
+    return false
 end
 
 -- Check whether there is any flag present at the lower-right corner of
