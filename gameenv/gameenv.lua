@@ -190,24 +190,32 @@ end
 -- no change from previous step.
 -- Returns 'screen', 'reward' and 'terminal'.
 function gameenv.step(a)
+    -- assign a small negative reward as default, to discourage the behavior:
+    -- (1) dodging at the corner without trying to take out any enemies,
+    -- (2) intentionally colliding with enemies to get some score.
+    local reward = -0.02
+
     if a then take_action(a) end
     preview_frames(1)
     local img = gameenv.img
-    local screen = image.crop(img, 0, 0, 640, 360)
+    local screen = galaga.crop_rawstate(img):type(torch.getdefaulttensortype()):div(256)  -- normalize pixel values to [0, 1)
+
     if gameenv.is_terminated then
         return screen, 0, true
     end
+
     local score = galaga.get_score(img)
-    local reward = score - gameenv.last_score
-    -- the following is to work around the problem that sometimes
-    -- galaga.get_score() could incorrectly return 0 for 1~2 frames
-    -- around end of a game
-    if score == 0 then
-        reward = 0
-    else
-        gameenv.last_score = score
+    -- the following is to work around the problem that galaga.get_score()
+    -- might incorrectly return 0 for 1~2 frames around end of a game
+    if score ~= 0 then
+        assert(score >= gameenv.last_score)
+        if score > gameenv.last_score then
+            reward = score - gameenv.last_score
+            gameenv.last_score = score
+        end
+        -- else case: score did not change
     end
-    assert(reward >= 0)
+
     -- check whether the game has ended
     if galaga.has_RESULT(img) or not galaga.has_HIGH(img) then
         gameenv.is_terminated = true

@@ -49,22 +49,33 @@ package.path = package.path .. ';./dqn-deepmind/?.lua'
 require 'initenv'
 _, _, agent, opt = setup(opt, game_env, game_actions)
 
-for i = 1, 5 do
-    local terminal = false
-    local cnt = 0
-    game_env.new_game()
-    while not terminal do
-        cnt = cnt + 1
-        if cnt % opt.actrep == 0 then
-            -- take a random action
+local steps = 0
+
+--
+-- Main Loop
+--
+game_env.new_game()
+screen, reward, terminal = game_env.step(0)
+if opt.verbose > 1 then print('Training on the 1st game...') end
+
+while steps < opt.steps do
+    w = image.display({image = screen, win = w})
+    steps = steps + 1
+    --local action_index, bestq = agent:perceive(reward, screen, terminal)
+
+    if not terminal then
+        if steps % opt.actrep == 0 then
             local a = torch.random(1 ,#game_actions)
-            _, _, terminal = game_env.step(game_actions[a])
+            screen, reward, terminal = game_env.step(game_actions[a])
         else
-            _, _, terminal = game_env.step()
+            screen, reward, terminal = game_env.step()
         end
+    else
+        -- Game Over
+        game_env.step(0)  -- release all buttons
+        print('Game Over, score = ' .. game_env.get_score())
+        break
     end
-    game_env.step(0)  -- release all buttons
-    print('Game #' .. i .. ', score = ' .. game_env.get_score())
 end
 
 game_env.cleanup()

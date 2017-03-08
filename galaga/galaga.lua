@@ -100,6 +100,8 @@ local function offset_all_loc(offset)
     galaga_image.flag_loc.w2 = galaga_image.flag_loc.w2 + offset
     galaga_image.result_loc.w1 = galaga_image.result_loc.w1 + offset
     galaga_image.result_loc.w2 = galaga_image.result_loc.w2 + offset
+    galaga_image.raw_loc.w1 = galaga_image.raw_loc.w1 + offset
+    galaga_image.raw_loc.w2 = galaga_image.raw_loc.w2 + offset
     galaga.offset = offset
 end
 
@@ -132,6 +134,7 @@ function galaga.has_HIGH(img)
         galaga.shifted = true
         return true
     end
+
     return false
 end
 
@@ -152,6 +155,14 @@ function galaga.has_RESULT(img)
     local abs_diff = rect:csub(galaga_image.result):abs()
     local diff_ratio = abs_diff[abs_diff:ge(32)]:numel() / abs_diff:numel()
     return (diff_ratio < 0.2)
+end
+
+-- Crop the image portion containing the 'rawstate' which would be sent
+-- to the Convolutional Neural Network for processing.
+function galaga.crop_rawstate(img)
+    --return img[{ {}, {13, 348}, {110, 445} }]
+    local loc = galaga_image.raw_loc
+    return img[{ {}, {loc.h1, loc.h2}, {loc.w1, loc.w2} }]
 end
 
 return galaga
