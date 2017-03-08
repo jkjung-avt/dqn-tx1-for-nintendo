@@ -23,12 +23,12 @@ function torchSetup(_opt)
 
     -- preprocess options:
     --- convert options strings to tables
-    if opt.pool_frms then
-        opt.pool_frms = str_to_table(opt.pool_frms)
-    end
-    if opt.env_params then
-        opt.env_params = str_to_table(opt.env_params)
-    end
+    --if opt.pool_frms then
+    --    opt.pool_frms = str_to_table(opt.pool_frms)
+    --end
+    --if opt.env_params then
+    --    opt.env_params = str_to_table(opt.env_params)
+    --end
     if opt.agent_params then
         opt.agent_params = str_to_table(opt.agent_params)
         opt.agent_params.gpu       = opt.gpu
@@ -40,8 +40,8 @@ function torchSetup(_opt)
     end
 
     --- general setup
-    opt.tensorType =  opt.tensorType or 'torch.FloatTensor'
-    torch.setdefaulttensortype(opt.tensorType)
+    --opt.tensorType =  opt.tensorType or 'torch.FloatTensor'
+    --torch.setdefaulttensortype(opt.tensorType)
     --- I think it's no longer necessary to call setnumthreads in modern Torch7
     -- if not opt.threads then
     --    opt.threads = 4
@@ -97,13 +97,13 @@ function torchSetup(_opt)
 end
 
 
-function setup(_opt)
+function setup(_opt, gameEnv, gameActions)
     assert(_opt)
 
     --preprocess options:
     --- convert options strings to tables
-    _opt.pool_frms = str_to_table(_opt.pool_frms)
-    _opt.env_params = str_to_table(_opt.env_params)
+    --_opt.pool_frms = str_to_table(_opt.pool_frms)
+    --_opt.env_params = str_to_table(_opt.env_params)
     _opt.agent_params = str_to_table(_opt.agent_params)
     if _opt.agent_params.transition_params then
         _opt.agent_params.transition_params =
@@ -114,11 +114,15 @@ function setup(_opt)
     local opt = torchSetup(_opt)
 
     -- load training framework and environment
-    local framework = require(opt.framework)
-    assert(framework)
+    --local framework = require(opt.framework)
+    --assert(framework)
 
-    local gameEnv = framework.GameEnvironment(opt)
-    local gameActions = gameEnv:getActions()
+    --local gameEnv = framework.GameEnvironment(opt)
+    --local gameActions = gameEnv:getActions()
+
+    if opt.verbose >= 1 then
+        print('Game Env: ' .. _opt.env .. ', #actions = ' .. #gameActions)
+    end
 
     -- agent options
     _opt.agent_params.actions   = gameActions
