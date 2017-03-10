@@ -15,6 +15,7 @@ require 'image'
 local gameenv = {}
 gameenv.is_initialized = false
 gameenv.is_terminated= true
+gameenv.win = nil
 
 local vidcap = require 'vidcap/vidcap'
 local galaga = require 'galaga/galaga'
@@ -32,7 +33,7 @@ function gameenv.init(game, display_freq)
 
     -- we only support Galaga for now, might expand the list of
     -- supported games later
-    assert(gameenv.game == 'galaga', 'game' .. gameenv.game .. ' unsupported!')
+    assert(gameenv.game == 'galaga', 'Game ' .. gameenv.game .. ' not supported!')
 
     -- init the vidcap module
     gameenv.img = vidcap.create_image()
@@ -40,9 +41,9 @@ function gameenv.init(game, display_freq)
     local ret = vidcap.init()
     assert(ret == 0, 'vidcap.init() failed!')
 
-    if gameenv.display_freq >= 0 then
+    if gameenv.display_freq ~= 0 then
         -- create the display window (all 0's = black screen)
-        gameenv.win = image.display({image = gameenv.img, legend = 'DQN playing' .. gameenv.game})
+        gameenv.win = image.display({image = gameenv.img, legend = 'nintendo ' .. gameenv.game, win = gameenv.win})
     end
 
     -- init gpio pins
@@ -98,7 +99,7 @@ local function preview_frames(n)
         gameenv.cnt = gameenv.cnt + 1
         if gameenv.display_freq ~= 0 and
            gameenv.cnt % gameenv.display_freq == 0 then
-            gameenv.win = image.display({image = gameenv.img, win = gameenv.win})
+            gameenv.win = image.display({image = gameenv.img, legend = 'nintendo ' .. gameenv.game, win = gameenv.win})
         end
     end
 end
@@ -193,7 +194,7 @@ function gameenv.step(a)
     -- assign a small negative reward as default, to discourage the behavior:
     -- (1) dodging at the corner without trying to take out any enemies,
     -- (2) intentionally colliding with enemies to get some score.
-    local reward = -0.02
+    local reward = -0.01
 
     if a then take_action(a) end
     preview_frames(1)
