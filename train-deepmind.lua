@@ -86,19 +86,20 @@ while true do
         -- check to see if we should do some training and reporting
     end
 
-    -- Game is over
+    -- Game is over; let the agent know about it
+    agent:perceive(reward, screen, terminal)
+    steps = steps + 1
     game_env.step(0)  -- release all buttons
     assert(steps == agent.numSteps, 'trainer step: ' .. steps .. ' & agent.numSteps: ' .. agent.numSteps)
 
     local game_time = torch.toc(tic)
     local diff = steps - tic_steps
-    print('\n*** ' .. diff .. ' steps done in ' .. string.format('%.2f s', game_time) .. ', expected is ' .. string.format('%.2f s', diff / 30))
+    print(string.format('\n*** %d steps (%.2f s) done in %.2f s', diff, diff / 30.0, game_time))
 
-    print('score = ' .. game_env.get_score())
-    local sum = stats:sum()
-    print('steps = ' .. steps .. ', stats:sum() = ' .. sum)
-    stats:div(sum)
-    print(stats)
+    stats:div(stats:sum())  -- calculate percentage of each action
+    io.write('Distribution of actions: ')
+    for i = 1, stats:size(1) do io.write(string.format('%.2f ,', stats[i])) end
+    print('Score = ' .. game_env.get_score() .. '\n')
     games = games + 1
     score_history[games] = game_env.get_score()
     steps_history[games] = diff
@@ -127,46 +128,7 @@ while true do
     if steps >= opt.steps then break end  -- the whole training is done
 end
 
---[[
---
--- Main program (old)
---
-game_env.new_game()
-screen, reward, terminal = game_env.step(0)
-if opt.verbose > 1 then print('Training on the 1st game...') end
-
-steps = 0
-games = 0
-history = {} 
-stats = torch.Tensor(#game_actions):fill(0)
-
-while steps < opt.steps do
-    steps = steps + 1
-    local a, bestq = agent:perceive(reward, screen, terminal)
-
-    if not terminal then
-        --local a = torch.random(1 ,#game_actions)
-        stats[a] = stats[a] + 1
-        screen, reward, terminal = game_env.step(game_actions[a])
-    else
-        -- Game Over
-        game_env.step(0)  -- release all buttons
-        print('score = ' .. game_env.get_score())
-        local sum = stats:sum()
-        print('steps = ' .. steps .. ', stats:sum() = ' .. sum)
-        stats:div(sum)
-        print(stats)
-        stats:fill(0)
-        games = games + 1
-        history[games] = game_env.get_score()
-        if games >= 100 then break end
-        game_env.new_game()
-        screen, reward, terminal = game_env.step(0)
-    end
-end
---]]
-
-hh = torch.Tensor(history)
-print('Average = ' .. hh:sum() / hh:numel() .. ', min = ' .. hh:min() .. ', max = ' .. hh:max())
+hh = torch.Tensor(score_history)
+print('\nScore average = ' .. hh:sum() / hh:numel() .. ', min = ' .. hh:min() .. ', max = ' .. hh:max())
 
 game_env.cleanup()
