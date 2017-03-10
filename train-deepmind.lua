@@ -98,7 +98,7 @@ while true do
 
     stats:div(stats:sum())  -- calculate percentage of each action
     io.write('Distribution of actions: ')
-    for i = 1, stats:size(1) do io.write(string.format('%.2f ,', stats[i])) end
+    for i = 1, stats:size(1) do io.write(string.format('%.2f, ', stats[i])) end
     print('Score = ' .. game_env.get_score() .. '\n')
     games = games + 1
     score_history[games] = game_env.get_score()
