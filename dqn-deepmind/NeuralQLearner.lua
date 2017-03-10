@@ -31,7 +31,7 @@ function nql:__init(args)
     self.lr_endt        = args.lr_endt or 1000000
     self.wc             = args.wc or 0  -- L2 weight cost.
     self.minibatch_size = args.minibatch_size or 1
-    self.valid_size     = args.valid_size or 500
+    --self.valid_size     = args.valid_size or 500
 
     --- Q-learning parameters
     self.discount       = args.discount or 0.99 --Discount factor.
@@ -140,8 +140,8 @@ function nql:__init(args)
     self.numSteps = 0 -- Number of perceived states.
     self.lastState = nil
     self.lastAction = nil
-    self.v_avg = 0 -- V running average.
-    self.tderr_avg = 0 -- TD error running average.
+    --self.v_avg = 0 -- V running average.
+    --self.tderr_avg = 0 -- TD error running average.
 
     self.q_max = 1
     self.r_max = 1
@@ -284,7 +284,7 @@ function nql:qLearnMinibatch()
     self.w:add(self.deltas)
 end
 
-
+--[[
 function nql:sample_validation_data()
     local s, a, r, s2, term = self.transitions:sample(self.valid_size)
     self.valid_s    = s:clone()
@@ -302,7 +302,7 @@ function nql:compute_validation_statistics()
     self.v_avg = self.q_max * q2_max:mean()
     self.tderr_avg = delta:clone():abs():mean()
 end
-
+--]]
 
 function nql:perceive(reward, rawstate, terminal, testing, testing_ep)
     -- Preprocess state (will be set to nil if terminal)
@@ -329,9 +329,10 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep)
                              self.lastTerminal, priority)
     end
 
-    if self.numSteps == self.learn_start+1 and not testing then
-        self:sample_validation_data()
-    end
+    -- valiation related code is removed
+    --if self.numSteps == self.learn_start+1 and not testing then
+    --    self:sample_validation_data()
+    --end
 
     curState= self.transitions:get_recent()
     curState = curState:resize(1, unpack(self.input_dims))
@@ -344,13 +345,14 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep)
 
     self.transitions:add_recent_action(actionIndex)
 
+    -- Q-Learning update code has been moved to train-deepmind.lua
     --Do some Q-learning updates
-    if self.numSteps > self.learn_start and not testing and
-        self.numSteps % self.update_freq == 0 then
-        for i = 1, self.n_replay do
-            self:qLearnMinibatch()
-        end
-    end
+    --if self.numSteps > self.learn_start and not testing and
+    --    self.numSteps % self.update_freq == 0 then
+    --    for i = 1, self.n_replay do
+    --        self:qLearnMinibatch()
+    --    end
+    --end
 
     if not testing then
         self.numSteps = self.numSteps + 1

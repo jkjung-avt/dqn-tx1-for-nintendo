@@ -16,12 +16,14 @@ function scale:__init(height, width)
 end
 
 function scale:forward(x)
-    local x = x
-    if x:dim() > 3 then
-        x = x[1]
-    end
+    --local x = x
 
-    x = image.rgb2y(x)
+    --assert(x:dim() == 3)
+    --if x:dim() > 3 then
+    --    x = x[1]
+    --end
+
+    --x = image.rgb2y(x)
     x = image.scale(x, self.width, self.height, 'bilinear')
     return x
 end
