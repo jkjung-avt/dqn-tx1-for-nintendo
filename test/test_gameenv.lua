@@ -16,12 +16,12 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text('options:')
 cmd:option('-games', 100, 'play this many games and calculate average score')
-cmd:option('-actstep', 2, 'take one action per this many game frames')
+cmd:option('-actrep', 2, 'how many steps to repeat an action')
 cmd:option('-plot', false, 'plot histogram at the end')
 cmd:text()
 opt = cmd:parse(arg or {})
 
-gameenv = require 'gameenv/gameenv'
+gameenv = require 'gameenv/gameenv-old'
 
 gameenv.init('galaga')
 actions = gameenv.get_actions()
@@ -33,7 +33,7 @@ for i = 1, opt.games do
     gameenv.new_game()
     while not terminal do
         cnt = cnt + 1
-        if cnt % opt.actstep == 0 then
+        if cnt % opt.actrep == 0 then
             -- take a random action
             _, _, terminal = gameenv.step(actions[math.random(#actions)])
         else
@@ -49,9 +49,10 @@ gameenv.cleanup()
 
 hh = torch.Tensor(history)
 print()
-print('Average score = ' .. (hh:sum() / hh:numel()) ..
+print('Score average = ' .. (hh:sum() / hh:numel()) ..
       ', min = ' .. hh:min() ..
       ', max = ' .. hh:max())
+
 if opt.plot then
     require 'gnuplot'
     gnuplot.hist(hh, hh:numel() / 5)
