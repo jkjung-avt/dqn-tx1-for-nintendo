@@ -1,5 +1,8 @@
 vidcap/libvidcap.so
 gpio/libgpio.so
 term/libterm.so
+imshow/libimshow.so
+imshow/*.png
+imshow/test
 image/
 DQN*.t7
