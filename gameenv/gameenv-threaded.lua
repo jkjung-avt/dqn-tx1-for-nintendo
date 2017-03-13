@@ -23,29 +23,33 @@ gameenv.is_initialized = false
 gameenv.is_terminated= true
 gameenv.thread = nil
 
+local step_state
+
 -- Initialize the game environment.
 -- 'game' is the name of the game, default to 'galaga'.
--- 'display_freq' is the frame interval for display, default to 3 frames.
+-- 'display_freq' is the frame interval for display, default to 1 frame.
 -- Note that display could be disabled by setting display_freq to 0
 function gameenv.init(game, display_freq)
     local display_freq = display_freq or 1
+    local tensor_type = torch.getdefaulttensortype()
 
     -- we only support Galaga for now, might expand the list of
     -- supported games later
     gameenv.game = game or 'galaga'
-    assert(gameenv.game == 'galaga', 'Game ' .. gameenv.game .. ' not supported!')
+    assert(gameenv.game == 'galaga', gameenv.game .. ' not supported!')
 
     -- initialize the supporting thread which would be resposible for
     -- capturing video and parsing galaga game images
     gameenv.thread = threads.Threads(1,
         function ()
-            --require 'image'
+            require 'image'
             t_vidcap = require 'vidcap/vidcap'
             t_galaga = require 'galaga/galaga'
             t_imshow = require 'imshow/imshow'
             t_disp = display_freq
             t_frames = 0
             t_last_score = 0
+            torch.setdefaulttensortype(tensor_type)
         end,
         function ()
             -- init the vidcap module
@@ -112,8 +116,10 @@ end
 
 -- Preview (without doing any action) the specified number of frames.
 -- It's assumed the game video is rendered at 30 fps.
--- Note the program would block for this much time without doing useful work.
+-- Note the program busy-waits for this much time without doing useful work.
 local function preview_frames(n)
+    local ret
+
     gameenv.thread:addjob(
         function ()
             if n > 1 then t_vidcap.flush() end
@@ -124,8 +130,43 @@ local function preview_frames(n)
                     t_imshow.display(t_img)
                 end
             end
+            return { high = t_galaga.has_HIGH(t_img),
+                     flag = t_galaga.has_Flag(t_img),
+                     lives = t_galaga.get_lives(t_img) }
+        end,
+        function (t)
+            ret = t
         end)
     gameenv.thread:synchronize()
+    return ret
+end
+
+-- Step 1 frame
+local function step_1_frame()
+    -- retrieve the returned table (step_state) from the previous job
+    gameenv.thread:synchronize()
+    -- queue a new job to the supporting thread
+    gameenv.thread:addjob(
+        function ()
+            t_vidcap.get(t_img)
+            t_frames = t_frames + 1
+            if t_disp ~= 0 and t_frames % t_disp == 0 then
+                t_imshow.display(t_img)
+            end
+            local s = t_galaga.crop_rawstate(t_img):type(torch.getdefaulttensortype()):div(256)  -- normalize pixel values to [0, 1)
+            assert(s:size(2) == 336 and s:size(3) == 336)
+            s[{ {}, {}, {1, 5} }]:fill(0)
+            s[{ {}, {}, {331, 336} }]:fill(0)
+            local screen = image.scale(s, 84, 84)
+            return { screen = screen,
+                     score = t_galaga.get_score(t_img),
+                     high = t_galaga.has_HIGH(t_img),
+                     result = t_galaga.has_RESULT(t_img) }
+        end,
+        function (t)
+            step_state = t
+        end)
+    return step_state
 end
 
 -- Take an action.
@@ -153,32 +194,30 @@ end
 
 -- Discard current game, and try to start a new game.
 -- new_game() is hard-coded for Galaga...
--- Note the program could block for a long time, or even forever (if the
--- Nintendo game console is not under Galaga game...)
+-- Note the program could busy-wait for a long time, or even forever (if
+-- the Nintendo game console is not under Galaga game...)
 function gameenv.new_game()
     local start_ok = false
-    local img = gameenv.img
+    local t
     gameenv.last_score = 0
---vidcap.flush()
 
     -- wait for the screen with 'HIGH SCORE' but no Flag
     while true do
-        preview_frames(300)
-        collectgarbage()
-        --if galaga.has_HIGH(img) and not galaga.has_Flag(img) then
-        --    local lives = galaga.get_lives(img)
-        --    if lives == 1 or lives == 2 then break end
-        --end
+        t = preview_frames(10)
+        if t.high == true and t.flag == false and
+           (t.lives == 1 or t.lives == 2) then
+            break
+        end
     end
 
     -- try pressing Start button up to 10 times
     -- expect to see a game screen with 3 lives
     for i = 1, 10 do
         start_button(true)
-        preview_frames(10)
+        t = preview_frames(10)
         start_button(false)
-        preview_frames(10)
-        if galaga.has_HIGH(img) and galaga.get_lives(img) == 3 then
+        t = preview_frames(10)
+        if t.high and t.lives == 3 then
             start_ok = true
             break
         end
@@ -188,8 +227,8 @@ function gameenv.new_game()
     -- wait for Flag to appear, up to 10 seconds
     start_ok = false
     for i = 1, 30 do
-        preview_frames(10)
-        if galaga.has_Flag(img) then
+        t = preview_frames(10)
+        if t.flag then
             start_ok = true
             break
         end
@@ -199,8 +238,8 @@ function gameenv.new_game()
     -- wait for lives to decrease from 3 to 2, up to 10 seconds
     start_ok = false
     for i = 1, 30 do
-        preview_frames(10)
-        if galaga.get_lives(img) == 2 then
+        t = preview_frames(10)
+        if t.lives == 2 then
             start_ok = true
             break
         end
@@ -209,6 +248,10 @@ function gameenv.new_game()
 
     -- a new game has really started
     gameenv.is_terminated = false
+
+    -- ask the supporting thread to start capturing the 1st video frame
+    -- for the new game
+    step_1_frame()
 end
 
 -- Take one step for the game.
@@ -216,8 +259,6 @@ end
 -- no change from previous step.
 -- Returns 'screen', 'reward' and 'terminal'.
 function gameenv.step(a)
-    local gameenv = gameenv
-
     -- assign a small negative reward as default, to discourage the behavior:
     -- (1) dodging at the corner without trying to take out any enemies,
     -- (2) intentionally colliding with enemies to get some score.
@@ -225,38 +266,28 @@ function gameenv.step(a)
 
     if a then take_action(a) end
 
-    gameenv.thread:addjob(
-        function ()
-            --print('gameenv.test = ' .. gameenv.test)
-            --gameenv.test = gameenv.test + 1
-            print(a)
-        end)
-
-    preview_frames(1)
-    local img = gameenv.img
-    local screen = galaga.crop_rawstate(img):type(torch.getdefaulttensortype()):div(256)  -- normalize pixel values to [0, 1)
+    local t = step_1_frame()
 
     if gameenv.is_terminated then
-        return screen, 0, true
+        return t.screen, 0, true
     end
 
-    local score = galaga.get_score(img)
     -- the following is to work around the problem that galaga.get_score()
     -- might incorrectly return 0 for 1~2 frames around end of a game
-    if score ~= 0 then
-        assert(score >= gameenv.last_score)
-        if score > gameenv.last_score then
-            reward = score - gameenv.last_score
-            gameenv.last_score = score
+    if t.score ~= 0 then
+        assert(t.score >= gameenv.last_score)
+        if t.score > gameenv.last_score then
+            reward = t.score - gameenv.last_score
+            gameenv.last_score = t.score
         end
         -- else case: score did not change
     end
 
     -- check whether the game has ended
-    if galaga.has_RESULT(img) or not galaga.has_HIGH(img) then
+    if t.result == true or t.high == false then
         gameenv.is_terminated = true
     end
-    return screen, reward, gameenv.is_terminated
+    return t.screen, reward, gameenv.is_terminated
 end
 
 -- Return current score of the game.

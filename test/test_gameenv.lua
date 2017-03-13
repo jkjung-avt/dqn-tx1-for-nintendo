@@ -12,6 +12,8 @@
 
 require 'torch'
 
+torch.setdefaulttensortype('torch.FloatTensor')
+
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text('options:')
@@ -21,28 +23,36 @@ cmd:option('-plot', false, 'plot histogram at the end')
 cmd:text()
 opt = cmd:parse(arg or {})
 
-gameenv = require 'gameenv/gameenv-old'
+gameenv = require 'gameenv/gameenv-threaded'
 
 gameenv.init('galaga')
 actions = gameenv.get_actions()
 history = {}
 
 for i = 1, opt.games do
-    local terminal = false
-    local cnt = 0
+    local screen, reward, terminal
+    local total_reward = 0
+    local cnt = 1
     gameenv.new_game()
+    screen, reward, terminal = gameenv.step(0)
+    local tic = torch.tic()
     while not terminal do
-        cnt = cnt + 1
         if cnt % opt.actrep == 0 then
             -- take a random action
-            _, _, terminal = gameenv.step(actions[math.random(#actions)])
+            screen, reward, terminal = gameenv.step(actions[torch.random(1, #actions)])
         else
-            _, _, terminal = gameenv.step()
+            screen, reward, terminal = gameenv.step()
         end
+        assert(screen:dim() == 3)
+        assert(screen:size(1) == 1 and screen:size(2) == 84 and screen:size(3) == 84)
+        if reward > 0 then total_reward = total_reward + reward end
+        cnt = cnt + 1
     end
     gameenv.step(0)  -- release all buttons
-    print(('Game #%3d, score = '):format(i) .. gameenv.get_score())
+    assert(gameenv.get_score() == total_reward)
+    print(string.format('Game #%d (expected %.2f s) finished in %.2f s, score = %d', i, cnt / 30.0, torch.toc(tic), gameenv.get_score()))
     history[#history + 1] = gameenv.get_score()
+    collectgarbage()
 end
 
 gameenv.cleanup()
