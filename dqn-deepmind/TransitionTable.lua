@@ -146,7 +146,7 @@ end
 
 function trans:sample(batch_size)
     local batch_size = batch_size or 1
-    assert(batch_size < self.bufferSize)
+    assert(batch_size <= self.bufferSize)
 
     if not self.buf_ind or self.buf_ind + batch_size - 1 > self.bufferSize then
         self:fill_buffer()

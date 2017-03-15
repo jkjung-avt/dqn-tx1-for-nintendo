@@ -35,7 +35,8 @@ function nql:__init(args)
 
     --- Q-learning parameters
     self.discount       = args.discount or 0.99 --Discount factor.
-    self.update_freq    = args.update_freq or 1
+    self.update_freq    = args.update_freq or 2
+    assert(self.update_freq > 1)
     -- Number of points to replay per learning step.
     self.n_replay       = args.n_replay or 1
     -- Number of steps after which learning starts.
