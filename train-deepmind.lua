@@ -5,10 +5,10 @@
 -- This program trains DeepMind's DQN on Jetson TX1 to play the Nintendo
 -- Famicom Mini game, Galaga.
 -- 
---   $ qlua train-deepmind.lua [options]
+--   $ th train-deepmind.lua [options]
 --
 --------------------------------------------------------------------------------
--- jkjung, 2017-03-07
+-- jkjung, 2017-03-15
 --------------------------------------------------------------------------------
 
 require 'torch'
@@ -22,13 +22,13 @@ cmd:text()
 cmd:text('Options:')
 cmd:option('-framework', 'nintendo', 'name of game framework to use')
 cmd:option('-env', 'galaga', 'name of game environment to use')
-cmd:option('-display_freq', 1, 'frequency of game image display')
+cmd:option('-display_freq', 2, 'frequency of game image display')
 cmd:option('-actrep', 2, 'how many steps to repeat an action')
 cmd:option('-name', 'DQN_galaga', 'filename for saving network and training history')
 cmd:option('-network', '', 'reload pretrained network')
 cmd:option('-agent', 'NeuralQLearner', 'name of agent file to use')
 cmd:option('-agent_params', 'lr=0.00025,ep=1,ep_end=0.1,ep_endt=100000,discount=0.99,hist_len=4,learn_start=10000,replay_memory=100000,update_freq=6,n_replay=1,network="convnet_atari3",preproc="net_downsample_2x_full_y",state_dim=7056,minibatch_size=8,rescale_r=1,ncols=1,bufferSize=8,target_q=10000,clip_delta=1,min_reward=-1,max_reward=1', 'string of agent parameters')
-cmd:option('-seed', 1, 'fixed input seed for repeatable experiments')
+cmd:option('-seed', 1, 'seed for the Torch7 random number generator')
 cmd:option('-steps', 5*10^7, 'number of training steps to perform')
 cmd:option('-save_freq', 10^5, 'the model is saved every save_freq steps')
 cmd:option('-save_versions', 10^5, 'save models with versions (0: only lastest one)')
@@ -52,7 +52,7 @@ package.path = package.path .. ';./dqn-deepmind/?.lua'
 require 'initenv'
 _, _, agent, opt = setup(opt, game_env, game_actions)
 
-c = require 'trepl.colorize'
+--c = require 'trepl.colorize'
 
 --
 -- Main program
@@ -80,31 +80,34 @@ while true do
 
     -- Inner loop, stepping through the game until terminal == true
     while not terminal do
-        local action_index = nil  -- nil means repeat previous action
         if steps % opt.actrep == 0 then
+            local action_index
             local xx = torch.tic()
-            --action_index = torch.random(1 ,#game_actions)
             action_index = agent:perceive(reward, screen, terminal)
             percv_history[#percv_history + 1] = torch.toc(xx)
-            -- skip the next training if this agent:perceive() takes too long
+            -- skip next training if current agent:perceive() takes too long
             if percv_history[#percv_history] > 0.01 then skip_train = true end
+
+            screen, reward, terminal = game_env.step(game_actions[action_index])
+            stats[action_index] = stats[action_index] + 1
+        else
+            -- step() with no argument means take same action as previous
+            screen, reward, terminal = game_env.step()
         end
-        screen, reward, terminal = game_env.step(game_actions[action_index])
-        if action_index then stats[action_index] = stats[action_index] + 1 end
         steps = steps + 1
         --if steps % 1000 == 1 then collectgarbage() end
         if steps % opt.save_freq == 0 then ready_to_save = true end
 
-        -- do some training if previous agent:perceive() did not take too long
+        -- do some training if OK
         if agent.numSteps > agent.learn_start and
            agent.numSteps % agent.update_freq == 0 then
             if not skip_train then
-                local xx = torch.tic()
+                local yy = torch.tic()
                 for i = 1, agent.n_replay do
                     agent:qLearnMinibatch()
                 end
-                train_history[#train_history + 1] = torch.toc(xx)
-                -- skip the next training if this training takes too long
+                train_history[#train_history + 1] = torch.toc(yy)
+                -- skip next training if current training takes too long
                 if train_history[#train_history] > 0.05 then skip_train = true end
             else
                 skip_train = false
