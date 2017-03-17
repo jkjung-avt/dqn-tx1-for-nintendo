@@ -2,9 +2,10 @@
 
 Aka, a Deep Q Learner Network (DQN) on NVIDIA Jetson TX1 which learns to play Nintendo Famicom Mini games.
 
-I'm developing an AI program, based on DeepMind's DQN, on Jetson TX1 to play Nintendo games. I use this repository to keep track of all source code of the project. Please refer to my blog for more information.
+I'm developing an AI program, based on DeepMind's DQN, on Jetson TX1 to play Nintendo games. I use this repository to keep track of all source code of the project. Please refer to the following blog posts for more information.
 
 [DQN (RL Agent) on TX1 for Nintendo Famicom Mini](https://jkjung-avt.github.io/dqn-tx1-for-nintendo/)
+
 [Nintendo AI Agent Training in Action, Finally...](https://jkjung-avt.github.io/training-in-action/)
 
 Installation Instructions
