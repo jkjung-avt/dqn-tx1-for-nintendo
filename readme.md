@@ -4,7 +4,8 @@ Aka, a Deep Q Learner Network (DQN) on NVIDIA Jetson TX1 which learns to play Ni
 
 I'm developing an AI program, based on DeepMind's DQN, on Jetson TX1 to play Nintendo games. I use this repository to keep track of all source code of the project. Please refer to my blog for more information.
 
-[https://jkjung-avt.github.io/nintendo-famicom-mini/](https://jkjung-avt.github.io/nintendo-famicom-mini/)
+[DQN (RL Agent) on TX1 for Nintendo Famicom Mini](https://jkjung-avt.github.io/dqn-tx1-for-nintendo/)
+[Nintendo AI Agent Training in Action, Finally...](https://jkjung-avt.github.io/training-in-action/)
 
 Installation Instructions
 -------------------------
@@ -16,20 +17,20 @@ The following are required for this **dqn-tx1-for-nintendo** to work.
 * TX1 GPIO connections to [the joystick of Nintendo Famicom Mini](https://jkjung-avt.github.io/gpio-circuit/).
 * (Preferred) [A swap partition for TX1](https://jkjung-avt.github.io/swap-on-tx1/).
 * [GPIO access permission for non-root user (ubuntu) on TX1](https://jkjung-avt.github.io/gpio-non-root/).
-* [Torch7](https://jkjung-avt.github.io/torch7-on-tx1/), with qlua.
+* [Torch7](https://jkjung-avt.github.io/torch7-on-tx1/).
 
 Training DQN on Nintendo Games
 ------------------------------
 
-To build the code, just run `make` at the project root diretory.
+To build the code on Jetson TX1, just run `make` at the project root diretory.
 
 ```shell
  $ make
 ```
-Then execute `run.lua` to train the DQN. (This part is still under development...)
+Then execute `train-deepmind.lua` to train the DQN (use `-h` to see help messages).
 
 ```shell
- $ qlua ./run.lua
+ $ th ./train-deepmind.lua
 ```
 
 Modules within This Project
@@ -37,11 +38,12 @@ Modules within This Project
 
 The following modules resides in the corresponding subdirectories of the repository. There are also test scripts for most modules as described in the next section.
 
-* 'vidcap' - for HDMI video capture, reference: [https://jkjung-avt.github.io/vidcap-in-torch7/](https://jkjung-avt.github.io/vidcap-in-torch7/)
+* 'vidcap' - for HDMI video capture, reference: [Capturing HDMI Video in Torch7](https://jkjung-avt.github.io/vidcap-in-torch7/)
 * 'galaga' - for parsing Galaga game screens to determine state (score, lives, etc.) of the game
-* 'gpio' - for controlling GPIO outputs, reference: [https://jkjung-avt.github.io/gpio-in-torch7/](https://jkjung-avt.github.io/gpio-in-torch7/)
-* 'gamenev' - game enviornment API for Nintendo Famicom Mini
-* 'dqn' - Google DeepMind's Deep Q Learner Network
+* 'gpio' - for controlling GPIO outputs, reference: [Accessing Hardware GPIO in Torch7](https://jkjung-avt.github.io/gpio-in-torch7/)
+* 'imshow' - for displaying video/images, reference: [Getting Around Memory Leak Problem of Torch7's image.display() Interface](https://jkjung-avt.github.io/imshow/)
+* 'gamenev' - game enviornment API for Nintendo Famicom Mini, reference: [Galaga Game Environment](https://jkjung-avt.github.io/galaga-gameenv/)
+* 'dqn-deepmind' - Google DeepMind's Deep Q Learner Networki, for which I've applied cuDNN to speed up its training, reference: [Using cuDNN to Speed Up DQN Training on Jetson TX1](https://jkjung-avt.github.io/dqn-cudnn/)
 
 Testing Individual Modules
 --------------------------
@@ -52,5 +54,6 @@ All test scripts are organized in the 'test' subdirectory. They are meant to be 
  $ qlua test/test_vidcap.lua
  $ qlua test/test_galaga.lua
  $ th   test/test_gpio.lua
- $ qlua test/test_gameenv.lua
+ $ th   test/test_imshow.lua
+ $ th   test/test_gameenv.lua
 ```
