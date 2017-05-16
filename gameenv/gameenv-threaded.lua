@@ -262,7 +262,8 @@ function gameenv.step(a)
     -- assign a small negative reward as default, to discourage the behavior:
     -- (1) dodging at the corner without trying to take out any enemies,
     -- (2) intentionally colliding with enemies to get some score.
-    local reward = -0.01
+    -- local reward = -0.01
+    local reward = 0
 
     if a then take_action(a) end
 
