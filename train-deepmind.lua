@@ -123,10 +123,9 @@ while true do
 
     if #train_history > 1 then
         local px = torch.Tensor(percv_history)
-        print('\n--- perceive time average = ' .. px:sum() / px:numel() .. ', max = ' .. px:max() .. ', min = ' .. px:min())
+        print(string.format('\n--- perceive time (ms) average = %.2f, max = %.2f, min = %.2f', px:sum() / px:numel() * 1000, px:max() * 1000, px:min() * 1000))
         local tx = torch.Tensor(train_history)
-        print('--- trained for ' .. #train_history .. ' times')
-        print('--- training time average = ' .. tx:sum() / tx:numel() .. ', max = ' .. tx:max() .. ', min = ' .. tx:min())
+        print(string.format('--- training time (ms) average = %.2f, max = %.2f, min = %.2f', tx:sum() / tx:numel() * 1000, tx:max() * 1000, tx:min() * 1000))
     end
 
     local game_time = torch.toc(tic)
