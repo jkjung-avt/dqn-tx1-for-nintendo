@@ -8,6 +8,8 @@ I'm developing an AI program, based on DeepMind's DQN, on Jetson TX1 to play Nin
 
 [Nintendo AI Agent Training in Action, Finally...](https://jkjung-avt.github.io/training-in-action/)
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/j-JKPok_1os" frameborder="0" allowfullscreen></iframe>
+
 Installation Instructions
 -------------------------
 
